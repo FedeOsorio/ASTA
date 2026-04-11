@@ -1,0 +1,185 @@
+
+// Sistema de turnos — schema.prisma
+// Stack: Next.js + Prisma + PostgreSQL (Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATION
+// Representa cada negocio/profesional que usa el sistema.
+// Es la raíz del multi-tenant — todo tiene org_id.
+// ─────────────────────────────────────────────
+model Organization {
+  id                 String    @id @default(uuid())
+  name               String
+  slug               String    @unique  // ej: "dra-garcia", para URLs amigables
+  industry           String    // ej: "veterinaria", "abogado", "psicologia"
+  timezone           String    @default("America/Argentina/Buenos_Aires")
+  phone              String?   // teléfono del negocio
+  address            String?
+
+  // WhatsApp (Evolution API)
+  whatsappSessionId  String?   // ID de sesión en Evolution API
+
+  // Google Calendar (opcional, para futuro)
+  googleCalendarId   String?
+  googleRefreshToken String?
+
+  // Suscripción / estado de cuenta
+  isActive           Boolean   @default(true)
+  plan               String    @default("trial")  // "trial" | "basic" | "pro"
+  trialEndsAt        DateTime?
+  billingEndsAt      DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relaciones
+  users              User[]
+  resources          Resource[]
+  services           Service[]
+  contacts           Contact[]
+  appointments       Appointment[]
+
+  @@map("organizations")
+}
+
+// ─────────────────────────────────────────────
+// USER
+// Los profesionales/empleados que usan el panel web.
+// No confundir con Contact (los clientes/pacientes).
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  orgId        String
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")  // "admin" | "staff"
+  isActive     Boolean  @default(true)     // false = no puede iniciar sesión
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  appointments  Appointment[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// RESOURCE
+// Lo que se reserva: una persona, un consultorio, una sala.
+// Ej veterinaria: "Consultorio 1", "Dr. Pérez"
+// Ej abogados: "Dr. García", "Sala de reuniones"
+// ─────────────────────────────────────────────
+model Resource {
+  id           String   @id @default(uuid())
+  orgId        String
+  name         String
+  description  String?
+  color        String   @default("#6366f1") // color en el calendario
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("resources")
+}
+
+// ─────────────────────────────────────────────
+// SERVICE
+// Tipos de atención con su duración.
+// Ej veterinaria: "Vacunación (15 min)", "Consulta (30 min)"
+// Ej abogados: "Consulta inicial (60 min)", "Seguimiento (30 min)"
+// ─────────────────────────────────────────────
+model Service {
+  id              String   @id @default(uuid())
+  orgId           String
+  name            String
+  durationMinutes Int      @default(30)
+  color           String   @default("#8b5cf6") // color en el calendario
+  description     String?
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("services")
+}
+
+// ─────────────────────────────────────────────
+// CONTACT
+// Los clientes/pacientes de cada organización.
+// No inician sesión — son solo datos de contacto.
+// ─────────────────────────────────────────────
+model Contact {
+  id           String   @id @default(uuid())
+  orgId        String
+  name         String
+  phone        String?  // con código de país, ej: +5491112345678
+  email        String?
+  notes        String?  // alergias, observaciones, etc.
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@map("contacts")
+}
+
+// ─────────────────────────────────────────────
+// APPOINTMENT
+// El turno en sí. Conecta todo.
+// ─────────────────────────────────────────────
+model Appointment {
+  id          String   @id @default(uuid())
+  orgId       String
+  resourceId  String
+  serviceId   String
+  contactId   String
+  createdById String   // qué usuario del panel lo agendó
+
+  startsAt    DateTime
+  endsAt      DateTime // calculado: startsAt + service.durationMinutes
+  status      String   @default("confirmed") // "confirmed" | "cancelled" | "completed" | "no_show"
+  notes       String?  // observaciones del turno puntual
+
+  // WhatsApp
+  whatsappSent    Boolean   @default(false)
+  whatsappSentAt  DateTime?
+
+  // Google Calendar (futuro)
+  googleEventId   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [resourceId], references: [id])
+  service      Service      @relation(fields: [serviceId], references: [id])
+  contact      Contact      @relation(fields: [contactId], references: [id])
+  createdBy    User         @relation(fields: [createdById], references: [id])
+
+  @@map("appointments")
+}
