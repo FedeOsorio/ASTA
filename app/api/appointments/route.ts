@@ -47,14 +47,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: orgValidation.error }, { status: orgValidation.status })
   }
 
-  const { contactId, serviceId, professionalId, price, startsAt, notes } = await req.json()
+  const { contactId, serviceId, professionalId, price, startsAt, patient, notes } = await req.json()
+  const normalizedPatient = typeof patient === "string" ? patient.trim() : ""
+
+  if (!contactId || !serviceId || !professionalId || !startsAt) {
+    return NextResponse.json(
+      { error: "Faltan campos obligatorios para crear el turno" },
+      { status: 400 }
+    )
+  }
 
   const service = await prisma.service.findFirst({
     where: { id: serviceId, orgId: orgValidation.orgId },
   })
   if (!service) return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
 
+  const professional = await prisma.professional.findFirst({
+    where: { id: professionalId, orgId: orgValidation.orgId, isActive: true },
+    select: { id: true },
+  })
+  if (!professional) return NextResponse.json({ error: "Profesional no encontrado" }, { status: 404 })
+
+  const contact = await prisma.contact.findFirst({
+    where: { id: contactId, orgId: orgValidation.orgId },
+    select: { id: true },
+  })
+  if (!contact) return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
+
   const start = new Date(startsAt)
+  if (Number.isNaN(start.getTime())) {
+    return NextResponse.json({ error: "Fecha de inicio inválida" }, { status: 400 })
+  }
+
   const end = new Date(start.getTime() + service.durationMinutes * 60000)
   const parsedPrice = Number(price)
   if (Number.isFinite(parsedPrice) && parsedPrice < 0) {
@@ -71,6 +95,7 @@ export async function POST(req: Request) {
     createdById: session.user.id,
     startsAt: start,
     endsAt: end,
+    patient: normalizedPatient || null,
     notes,
     additionalNotes: [],
     status: "Confirmado",
@@ -79,6 +104,20 @@ export async function POST(req: Request) {
   const appointment = await prisma.appointment.create({
     data: appointmentData as any,
   })
+
+  if (normalizedPatient) {
+    const contactWithPatients = await prisma.contact.findFirst({
+      where: { id: contactId, orgId: orgValidation.orgId },
+      select: { id: true, patients: true } as any,
+    }) as any
+
+    if (contactWithPatients && !contactWithPatients.patients.includes(normalizedPatient)) {
+      await prisma.contact.update({
+        where: { id: contactWithPatients.id },
+        data: { patients: { push: normalizedPatient } } as any,
+      })
+    }
+  }
 
   return NextResponse.json(appointment, { status: 201 })
 }

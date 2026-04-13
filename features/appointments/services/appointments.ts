@@ -44,6 +44,7 @@ export async function getAppointmentsForCalendar(orgId: string) {
         serviceId: apt.serviceId,
         professionalId: apt.professionalId,
         professionalName: apt.professional.name,
+        patient: (apt as any).patient,
         contactPhone: apt.contact.phone,
         status: apt.status,
         visualStatus,

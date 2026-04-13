@@ -11,7 +11,7 @@ export default async function TurnosPage() {
         <p className="text-xs text-gray-400 mt-0.5">Gestión de agenda</p>
       </div>
       <div className="flex-1 p-6">
-        <AppointmentsView orgId={session!.user.orgId} />
+        <AppointmentsView orgId={session!.user.orgId} industry={session!.user.industry} />
       </div>
     </div>
   )

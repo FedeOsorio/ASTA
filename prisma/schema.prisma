@@ -154,8 +154,11 @@ model Contact {
   id           String   @id @default(uuid())
   orgId        String
   name         String
+  document     String?
   phone        String?  // con código de país, ej: +5491112345678
   email        String?
+  address      String?
+  patients     String[] @default([])
   notes        String?  // alergias, observaciones, etc.
 
   createdAt    DateTime @default(now())
@@ -183,6 +186,7 @@ model Appointment {
   startsAt        DateTime
   endsAt          DateTime
   status          String   @default("confirmed")
+  patient         String?
   notes           String?
   additionalNotes String[] @default([])
   price           Decimal? @db.Decimal(10, 2)

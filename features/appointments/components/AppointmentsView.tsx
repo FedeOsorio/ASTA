@@ -16,9 +16,10 @@ import { useWorkingHours } from "../hooks/useWorkingHours"
 
 interface AppointmentsViewProps {
   orgId: string
+  industry: string
 }
 
-export function AppointmentsView({ orgId }: AppointmentsViewProps) {
+export function AppointmentsView({ orgId, industry }: AppointmentsViewProps) {
   const calendarRef = useRef<any>(null)
   const appointments = useAppointments()
   const modals = useAppointmentModals()
@@ -211,6 +212,7 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
           void appointments.fetchEvents({ silent: true })
         }}
         selectedDate={modals.selectedDate}
+        industry={industry}
       />
 
       <AppointmentTooltip

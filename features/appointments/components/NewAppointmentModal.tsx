@@ -12,16 +12,18 @@ interface NewAppointmentModalProps {
   open: boolean
   onClose: () => void
   onCreated: () => void
+  industry: string
   selectedDate?: Date | null
 }
 
 interface Contact {
   id: string
   name: string
+  patients?: string[]
   phone?: string | null
 }
 
-export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: NewAppointmentModalProps) {
+export function NewAppointmentModal({ open, onClose, onCreated, industry, selectedDate }: NewAppointmentModalProps) {
   const [loading, setLoading] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [services, setServices] = useState<any[]>([])
@@ -30,15 +32,21 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
   const [newContactName, setNewContactName] = useState("")
   const [newContactPhone, setNewContactPhone] = useState("")
   const [creatingContact, setCreatingContact] = useState(false)
+  const [submitError, setSubmitError] = useState("")
 
   const [form, setForm] = useState({
     contactId: "",
     serviceId: "",
     professionalId: "",
     startsAt: "",
+    patient: "",
     notes: "",
     price: ""
   })
+
+  const shouldAskPatient = ["medicina", "veterinaria"].includes(String(industry).toLowerCase())
+  const selectedContact = contacts.find(c => c.id === form.contactId)
+  const patientSuggestions = Array.isArray(selectedContact?.patients) ? selectedContact.patients : []
 
   useEffect(() => {
     if (open) {
@@ -57,6 +65,27 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setSubmitError("")
+
+    if (!form.contactId) {
+      setSubmitError("Debés seleccionar un cliente.")
+      return
+    }
+
+    if (!form.serviceId) {
+      setSubmitError("Debés seleccionar un servicio.")
+      return
+    }
+
+    if (!form.professionalId) {
+      setSubmitError("Debés seleccionar un profesional.")
+      return
+    }
+
+    if (!form.startsAt) {
+      setSubmitError("Debés seleccionar una fecha y hora.")
+      return
+    }
 
     if (form.price !== "" && Number(form.price) < 0) {
       alert("El costo del servicio no puede ser menor a 0.")
@@ -70,6 +99,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        patient: shouldAskPatient ? form.patient : undefined,
         price: form.price === "" ? undefined : Number(form.price),
       }),
     })
@@ -77,10 +107,14 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
     if (res.ok) {
       onCreated()
       onClose()
-      setForm({ contactId: "", serviceId: "", professionalId: "", startsAt: "", notes: "", price: "" })
+      setForm({ contactId: "", serviceId: "", professionalId: "", startsAt: "", patient: "", notes: "", price: "" })
       setNewContactName("")
       setNewContactPhone("")
       setShowNewContact(false)
+      setSubmitError("")
+    } else {
+      const payload = await res.json().catch(() => null)
+      setSubmitError(payload?.error ?? "No se pudo guardar el turno")
     }
 
     setLoading(false)
@@ -92,6 +126,11 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
       return
     }
 
+    if (newContactPhone.trim() === "") {
+      alert("El teléfono es obligatorio")
+      return
+    }
+
     setCreatingContact(true)
 
     const res = await fetch("/api/contacts", {
@@ -99,7 +138,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: newContactName,
-        phone: newContactPhone === "" ? undefined : newContactPhone,
+        phone: newContactPhone,
       }),
     })
 
@@ -126,6 +165,12 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
           <DialogTitle>Nuevo turno</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          {submitError && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Cliente</Label>
             {showNewContact ? (
@@ -140,7 +185,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
                   <Input
                     value={newContactPhone}
                     onChange={e => setNewContactPhone(e.target.value)}
-                    placeholder="Teléfono"
+                    placeholder="Teléfono *"
                     className="flex-1"
                   />
                 </div>
@@ -165,7 +210,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
               </div>
             ) : (
               <div className="flex gap-2">
-                <Select value={form.contactId} onValueChange={v => setForm(f => ({ ...f, contactId: v }))}>
+                <Select value={form.contactId} onValueChange={v => { setForm(f => ({ ...f, contactId: v, patient: "" })); setSubmitError("") }}>
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Seleccioná un cliente" />
                   </SelectTrigger>
@@ -197,6 +242,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
                   serviceId: v,
                   price: service?.price != null ? String(service.price) : f.price,
                 }))
+                setSubmitError("")
               }}
             >
               <SelectTrigger>
@@ -223,7 +269,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
 
           <div className="space-y-2">
             <Label>Profesional</Label>
-            <Select value={form.professionalId} onValueChange={v => setForm(f => ({ ...f, professionalId: v }))}>
+            <Select value={form.professionalId} onValueChange={v => { setForm(f => ({ ...f, professionalId: v })); setSubmitError("") }}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccioná un recurso" />
               </SelectTrigger>
@@ -240,10 +286,27 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
             <Input
               type="datetime-local"
               value={form.startsAt}
-              onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))}
+              onChange={e => { setForm(f => ({ ...f, startsAt: e.target.value })); setSubmitError("") }}
               required
             />
           </div>
+
+          {shouldAskPatient && (
+            <div className="space-y-2">
+              <Label>Paciente</Label>
+              <Input
+                list="patient-suggestions"
+                value={form.patient}
+                onChange={e => setForm(f => ({ ...f, patient: e.target.value }))}
+                placeholder="Ej: Kumi - Cobaya"
+              />
+              <datalist id="patient-suggestions">
+                {patientSuggestions.map((patientName) => (
+                  <option key={patientName} value={patientName} />
+                ))}
+              </datalist>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Notas</Label>

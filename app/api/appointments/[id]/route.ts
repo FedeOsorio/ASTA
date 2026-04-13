@@ -40,12 +40,13 @@ export async function PUT(
   }
 
   const { id } = await params
-  const { contactId, serviceId, professionalId, startsAt, notes, status, price, additionalNote } = await req.json()
+  const { contactId, serviceId, professionalId, startsAt, patient, notes, status, price, additionalNote } = await req.json()
   const normalizedStatus = normalizeStatus(status)
+  const normalizedPatient = typeof patient === "string" ? patient.trim() : ""
 
   const current = await prisma.appointment.findFirst({
     where: { id, orgId: orgValidation.orgId },
-    select: { id: true, serviceId: true, status: true },
+    select: { id: true, serviceId: true, contactId: true, status: true },
   })
   if (!current) return NextResponse.json({ error: "Turno no encontrado" }, { status: 404 })
 
@@ -56,6 +57,7 @@ export async function PUT(
       serviceId !== undefined ||
       professionalId !== undefined ||
       startsAt !== undefined ||
+      patient !== undefined ||
       price !== undefined
 
     const tryingToChangeFinalStatus = normalizedStatus !== undefined && normalizedStatus !== "Realizado"
@@ -100,6 +102,7 @@ export async function PUT(
     ...(contactId ? { contactId } : {}),
     ...(serviceId ? { serviceId } : {}),
     ...(professionalId ? { professionalId } : {}),
+    ...(typeof patient === "string" ? { patient: normalizedPatient || null } : {}),
     ...(typeof notes === "string" ? { notes } : {}),
     ...(nextPrice !== undefined ? { price: nextPrice } : {}),
     ...(nextStart ? { startsAt: nextStart, endsAt: nextEnd } : {}),
@@ -117,6 +120,21 @@ export async function PUT(
     where: { id },
     data: updateData,
   })
+
+  if (typeof patient === "string" && normalizedPatient) {
+    const targetContactId = contactId ?? current.contactId
+    const contact = await prisma.contact.findFirst({
+      where: { id: targetContactId, orgId: orgValidation.orgId },
+      select: { id: true, patients: true } as any,
+    }) as any
+
+    if (contact && !contact.patients.includes(normalizedPatient)) {
+      await prisma.contact.update({
+        where: { id: contact.id },
+        data: { patients: { push: normalizedPatient } } as any,
+      })
+    }
+  }
 
   return NextResponse.json(appointment)
 }

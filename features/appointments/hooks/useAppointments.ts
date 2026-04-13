@@ -5,6 +5,7 @@ interface EditForm {
   serviceId: string
   professionalId: string
   startsAt: string
+  patient: string
   notes: string
   price: string
 }
@@ -35,6 +36,7 @@ export function useAppointments() {
     serviceId: "",
     professionalId: "",
     startsAt: "",
+    patient: "",
     notes: "",
     price: "",
   })
@@ -87,7 +89,7 @@ export function useAppointments() {
       return
     }
 
-    await fetchEvents()
+    await fetchEvents({ silent: true })
     setToast({ message: "Turno eliminado.", type: "success" })
   }
 
@@ -141,6 +143,7 @@ export function useAppointments() {
         contactId: updatedAppointment.contactId,
         serviceId: updatedAppointment.serviceId,
         professionalId: updatedAppointment.professionalId,
+        patient: (updatedAppointment as any).patient,
         notes: updatedAppointment.notes,
         additionalNotes: (updatedAppointment as any).additionalNotes ?? selectedAppointment.extendedProps.additionalNotes,
         price: updatedAppointment.price,
@@ -181,7 +184,7 @@ export function useAppointments() {
     onSuccess?.()
     setIsAddingNotesOnly(false)
     setSelectedAppointment(null)
-    await fetchEvents()
+    await fetchEvents({ silent: true })
     setToast({ message: "Turno cancelado.", type: "success" })
   }
 
@@ -213,7 +216,7 @@ export function useAppointments() {
     onSuccess?.()
     setIsAddingNotesOnly(false)
     setSelectedAppointment(null)
-    await fetchEvents()
+    await fetchEvents({ silent: true })
     setToast({ message: "Turno marcado como realizado.", type: "success" })
   }
 
@@ -228,6 +231,7 @@ export function useAppointments() {
       serviceId: selectedAppointment.extendedProps.serviceId,
       professionalId: selectedAppointment.extendedProps.professionalId,
       startsAt: toInputDateTime(selectedAppointment.start),
+      patient: selectedAppointment.extendedProps.patient ?? "",
       notes: selectedAppointment.extendedProps.notes ?? "",
       price: selectedAppointment.extendedProps.price ?? "",
     })
@@ -244,6 +248,7 @@ export function useAppointments() {
       serviceId: selectedAppointment.extendedProps.serviceId,
       professionalId: selectedAppointment.extendedProps.professionalId,
       startsAt: toInputDateTime(selectedAppointment.start),
+      patient: selectedAppointment.extendedProps.patient ?? "",
       notes: completed ? "" : (selectedAppointment.extendedProps.notes ?? ""),
       price: selectedAppointment.extendedProps.price ?? "",
     })

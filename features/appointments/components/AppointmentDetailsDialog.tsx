@@ -115,6 +115,8 @@ export function AppointmentDetailsDialog({
   const additionalNotes = Array.isArray(selectedAppointment.extendedProps.additionalNotes)
     ? selectedAppointment.extendedProps.additionalNotes
     : []
+  const selectedContact = contacts.find((c) => c.id === editForm.contactId)
+  const patientSuggestions = Array.isArray(selectedContact?.patients) ? selectedContact.patients : []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -151,6 +153,30 @@ export function AppointmentDetailsDialog({
               <p className="text-sm text-gray-700">{selectedAppointment.extendedProps.contactName}</p>
             )}
           </div>
+
+          {selectedAppointment.extendedProps.patient && (
+            <div className="space-y-2">
+              <Label>Paciente</Label>
+              <p className="text-sm text-gray-700">{selectedAppointment.extendedProps.patient}</p>
+            </div>
+          )}
+
+          {isEditing && !isCompleted && (
+            <div className="space-y-2">
+              <Label>Paciente</Label>
+              <Input
+                list="details-patient-suggestions"
+                value={editForm.patient}
+                onChange={(e) => onEditFormChange({ ...editForm, patient: e.target.value })}
+                placeholder="Ej: Kumi - Cobaya"
+              />
+              <datalist id="details-patient-suggestions">
+                {patientSuggestions.map((patientName: string) => (
+                  <option key={patientName} value={patientName} />
+                ))}
+              </datalist>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Servicio</Label>

@@ -5,8 +5,15 @@ const prisma = new PrismaClient()
 
 async function main() {
   // Organización
-  const org = await prisma.organization.create({
-    data: {
+  const org = await prisma.organization.upsert({
+    where: { slug: "veterinaria-san-martin" },
+    update: {
+      name: "Veterinaria San Martín",
+      industry: "veterinaria",
+      isActive: true,
+      plan: "trial",
+    },
+    create: {
       name: "Veterinaria San Martín",
       slug: "veterinaria-san-martin",
       industry: "veterinaria",
@@ -17,11 +24,56 @@ async function main() {
 
   // Usuario admin
   const passwordHash = await bcrypt.hash("password123", 10)
-  const user = await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: "admin@test.com" },
+    update: {
+      orgId: org.id,
+      name: "Admin",
+      passwordHash,
+      role: "admin",
+      isActive: true,
+    },
+    create: {
       orgId: org.id,
       name: "Admin",
       email: "admin@test.com",
+      passwordHash,
+      role: "admin",
+      isActive: true,
+    },
+  })
+
+  // Organización no veterinaria + usuario admin
+  const legalOrg = await prisma.organization.upsert({
+    where: { slug: "estudio-juridico-norte" },
+    update: {
+      name: "Estudio Jurídico Norte",
+      industry: "abogado",
+      isActive: true,
+      plan: "trial",
+    },
+    create: {
+      name: "Estudio Jurídico Norte",
+      slug: "estudio-juridico-norte",
+      industry: "abogado",
+      isActive: true,
+      plan: "trial",
+    },
+  })
+
+  await prisma.user.upsert({
+    where: { email: "admin.legal@test.com" },
+    update: {
+      orgId: legalOrg.id,
+      name: "Admin Legal",
+      passwordHash,
+      role: "admin",
+      isActive: true,
+    },
+    create: {
+      orgId: legalOrg.id,
+      name: "Admin Legal",
+      email: "admin.legal@test.com",
       passwordHash,
       role: "admin",
       isActive: true,
@@ -125,6 +177,8 @@ async function main() {
 
   console.log("✅ Seed completado")
   console.log("📧 Email: admin@test.com")
+  console.log("🔑 Password: password123")
+  console.log("📧 Email: admin.legal@test.com")
   console.log("🔑 Password: password123")
 }
 

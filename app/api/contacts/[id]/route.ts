@@ -2,22 +2,14 @@ import { auth } from "@/shared/lib/auth"
 import { NextResponse } from "next/server"
 import { prisma } from "@/shared/lib/prisma"
 
-export async function GET() {
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
-  const contacts = await prisma.contact.findMany({
-    where: { orgId: session.user.orgId },
-    orderBy: { name: "asc" },
-  })
-
-  return NextResponse.json(contacts)
-}
-
-export async function POST(req: Request) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-
+  const { id } = await params
   const { name, document, phone, email, address, notes } = await req.json()
 
   if (!name || String(name).trim() === "") {
@@ -28,9 +20,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "El teléfono es obligatorio" }, { status: 400 })
   }
 
-  const contact = await prisma.contact.create({
+  const existing = await prisma.contact.findFirst({
+    where: { id, orgId: session.user.orgId },
+    select: { id: true },
+  })
+
+  if (!existing) {
+    return NextResponse.json({ error: "Contacto no encontrado" }, { status: 404 })
+  }
+
+  const updated = await prisma.contact.update({
+    where: { id },
     data: {
-      orgId: session.user.orgId,
       name: String(name).trim(),
       document: document ? String(document).trim() : null,
       phone: String(phone).trim(),
@@ -40,5 +41,5 @@ export async function POST(req: Request) {
     },
   })
 
-  return NextResponse.json(contact, { status: 201 })
+  return NextResponse.json(updated)
 }
