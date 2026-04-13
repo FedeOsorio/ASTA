@@ -43,12 +43,33 @@ model Organization {
 
   // Relaciones
   users              User[]
-  resources          Resource[]
+  professionals      Professional[] 
   services           Service[]
   contacts           Contact[]
   appointments       Appointment[]
+  workingHours       WorkingHours?
 
   @@map("organizations")
+}
+
+// ─────────────────────────────────────────────
+// WORKING HOURS
+// Rango horario de trabajo de la organización
+// y espaciado entre slots del calendario
+// ─────────────────────────────────────────────
+model WorkingHours {
+  id              String   @id @default(uuid())
+  orgId           String   @unique
+  startTime       String   @default("08:00")  // HH:mm
+  endTime         String   @default("19:00")  // HH:mm
+  slotDuration    Int      @default(30)        // minutos entre slots
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("working_hours")
 }
 
 // ─────────────────────────────────────────────
@@ -76,27 +97,26 @@ model User {
 }
 
 // ─────────────────────────────────────────────
-// RESOURCE
-// Lo que se reserva: una persona, un consultorio, una sala.
-// Ej veterinaria: "Consultorio 1", "Dr. Pérez"
-// Ej abogados: "Dr. García", "Sala de reuniones"
+// Professional
+// El profesional que atiende el turno.
+// Ej veterinaria: "dra. Pérez"
+// Ej abogados: "Dr. García"
 // ─────────────────────────────────────────────
-model Resource {
+model Professional {
   id           String   @id @default(uuid())
   orgId        String
   name         String
   description  String?
-  color        String   @default("#6366f1") // color en el calendario
+  color        String   @default("#6366f1")
   isActive     Boolean  @default(true)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relaciones
   organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
-  @@map("resources")
+  @@map("professionals")
 }
 
 // ─────────────────────────────────────────────
@@ -112,6 +132,7 @@ model Service {
   durationMinutes Int      @default(30)
   color           String   @default("#8b5cf6") // color en el calendario
   description     String?
+  price           Decimal? @db.Decimal(10, 2)
   isActive        Boolean  @default(true)
 
   createdAt       DateTime @default(now())
@@ -152,34 +173,31 @@ model Contact {
 // El turno en sí. Conecta todo.
 // ─────────────────────────────────────────────
 model Appointment {
-  id          String   @id @default(uuid())
-  orgId       String
-  resourceId  String
-  serviceId   String
-  contactId   String
-  createdById String   // qué usuario del panel lo agendó
+  id              String   @id @default(uuid())
+  orgId           String
+  professionalId  String
+  serviceId       String
+  contactId       String
+  createdById     String
 
-  startsAt    DateTime
-  endsAt      DateTime // calculado: startsAt + service.durationMinutes
-  status      String   @default("confirmed") // "confirmed" | "cancelled" | "completed" | "no_show"
-  notes       String?  // observaciones del turno puntual
+  startsAt        DateTime
+  endsAt          DateTime
+  status          String   @default("confirmed")
+  notes           String?
+  price           Decimal? @db.Decimal(10, 2)
 
-  // WhatsApp
   whatsappSent    Boolean   @default(false)
   whatsappSentAt  DateTime?
-
-  // Google Calendar (futuro)
   googleEventId   String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  // Relaciones
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  resource     Resource     @relation(fields: [resourceId], references: [id])
-  service      Service      @relation(fields: [serviceId], references: [id])
-  contact      Contact      @relation(fields: [contactId], references: [id])
-  createdBy    User         @relation(fields: [createdById], references: [id])
+  organization  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  professional  Professional  @relation(fields: [professionalId], references: [id])
+  service       Service       @relation(fields: [serviceId], references: [id])
+  contact       Contact       @relation(fields: [contactId], references: [id])
+  createdBy     User          @relation(fields: [createdById], references: [id])
 
   @@map("appointments")
 }
