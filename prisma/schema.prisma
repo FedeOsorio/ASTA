@@ -184,6 +184,7 @@ model Appointment {
   endsAt          DateTime
   status          String   @default("confirmed")
   notes           String?
+  additionalNotes String[] @default([])
   price           Decimal? @db.Decimal(10, 2)
 
   whatsappSent    Boolean   @default(false)

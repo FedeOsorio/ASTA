@@ -12,6 +12,10 @@ export async function PATCH(
   const data = await req.json()
   const { id } = await params
 
+  if (data.price !== null && data.price !== undefined && Number(data.price) < 0) {
+    return NextResponse.json({ error: "El costo no puede ser menor a 0" }, { status: 400 })
+  }
+
   const service = await prisma.service.update({
     where: { id, orgId: session.user.orgId },
     data,

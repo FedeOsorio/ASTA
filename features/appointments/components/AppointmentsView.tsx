@@ -29,6 +29,26 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
   }, [orgId])
 
   useEffect(() => {
+    const now = Date.now()
+    const boundaryTimes = (appointments.events as Array<{ start?: string; end?: string }>)
+      .flatMap((event) => [event.start, event.end])
+      .map((value) => (value ? new Date(value).getTime() : NaN))
+      .filter((time) => Number.isFinite(time) && time > now)
+      .sort((a, b) => a - b)
+
+    if (boundaryTimes.length === 0) return
+
+    const nextBoundary = boundaryTimes[0]
+    const delay = Math.max(250, nextBoundary - now + 250)
+
+    const timer = window.setTimeout(() => {
+      appointments.fetchEvents({ silent: true })
+    }, delay)
+
+    return () => window.clearTimeout(timer)
+  }, [appointments.events, orgId])
+
+  useEffect(() => {
     if (appointments.toast) {
       const timer = setTimeout(() => appointments.setToast(null), 4500)
       return () => clearTimeout(timer)
@@ -75,6 +95,22 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
         .fc .fc-timegrid-slot {
           border-color: #f0f0f0;
         }
+        .fc .fc-timegrid-event-harness .fc-timegrid-event {
+          min-height: 38px;
+        }
+        .fc .fc-timegrid-event .fc-event-main {
+          height: 100%;
+          overflow: hidden;
+        }
+        .fc .fc-event {
+          transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+          cursor: pointer;
+        }
+        .fc .fc-event:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+          filter: saturate(1.08);
+        }
       `}</style>
       {appointments.toast && (
         <div className={`fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border px-4 py-3 text-sm shadow-lg ${
@@ -101,7 +137,7 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
 
       {appointments.loading || whLoading ? (
         <div className="flex items-center justify-center flex-1">
-          <p className="text-sm text-gray-400">Cargando turnos...</p>
+          <p className="text-sm text-gray-400">Cargando turnWos...</p>
         </div>
       ) : (
         <FullCalendar
@@ -125,6 +161,8 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
             minute: "2-digit",
             meridiem: false,
           }}
+          scrollTimeReset={false}
+          eventMinHeight={38}
           events={appointments.events}
           editable={false}
           selectable={true}
@@ -142,8 +180,8 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
             appointments.setSelectedAppointment({
               id: event.id,
               title: event.title,
-              start: event.start?.toISOString(),
-              end: event.end?.toISOString(),
+              start: event.start?.toISOString() ?? "",
+              end: event.end?.toISOString() ?? "",
               extendedProps: event.extendedProps,
             })
             modals.setTooltipPos({ top, left })
@@ -158,6 +196,9 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
               <p className="text-xs opacity-80 truncate">
                 {eventInfo.event.extendedProps.serviceName}
               </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide opacity-85 truncate">
+                {eventInfo.event.extendedProps.visualStatus ?? eventInfo.event.extendedProps.status}
+              </p>
             </div>
           )}
         />
@@ -166,7 +207,9 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
       <NewAppointmentModal
         open={modals.modalOpen}
         onClose={() => modals.setModalOpen(false)}
-        onCreated={appointments.fetchEvents}
+        onCreated={() => {
+          void appointments.fetchEvents({ silent: true })
+        }}
         selectedDate={modals.selectedDate}
       />
 
@@ -176,9 +219,11 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
         tooltipPos={modals.tooltipPos}
         selectedAppointment={appointments.selectedAppointment}
         onViewDetails={handleOpenDetailsModal}
-        onDelete={() => {
+        onDelete={async () => {
           if (appointments.selectedAppointment) {
-            appointments.handleDeleteAppointment(appointments.selectedAppointment.id)
+            await appointments.handleDeleteAppointment(appointments.selectedAppointment.id)
+            modals.setTooltipOpen(false)
+            appointments.setSelectedAppointment(null)
           }
         }}
       />
@@ -193,10 +238,17 @@ export function AppointmentsView({ orgId }: AppointmentsViewProps) {
         isEditing={appointments.isEditing}
         onStartEditing={appointments.startEditing}
         isSaving={appointments.isSaving}
+        isAddingNotesOnly={appointments.isAddingNotesOnly}
         editForm={appointments.editForm}
         onEditFormChange={appointments.setEditForm}
         onSaveChanges={appointments.handleSaveChanges}
-        onCancelAppointment={appointments.handleCancelAppointment}
+        onCancelEditing={appointments.cancelEditing}
+        onCancelAppointment={() =>
+          appointments.handleCancelAppointment(() => modals.setDetailsOpen(false))
+        }
+        onCompleteAppointment={() =>
+          appointments.handleCompleteAppointment(() => modals.setDetailsOpen(false))
+        }
         onSendConfirmation={() =>
           appointments.setToast({ message: "Próximamente: confirmación de turno por WhatsApp.", type: "info" })
         }

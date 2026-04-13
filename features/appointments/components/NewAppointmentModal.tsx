@@ -15,11 +15,21 @@ interface NewAppointmentModalProps {
   selectedDate?: Date | null
 }
 
+interface Contact {
+  id: string
+  name: string
+  phone?: string | null
+}
+
 export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: NewAppointmentModalProps) {
   const [loading, setLoading] = useState(false)
-  const [contacts, setContacts] = useState<any[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [professional, setProfessional] = useState<any[]>([])
+  const [professionals, setProfessionals] = useState<any[]>([])
+  const [showNewContact, setShowNewContact] = useState(false)
+  const [newContactName, setNewContactName] = useState("")
+  const [newContactPhone, setNewContactPhone] = useState("")
+  const [creatingContact, setCreatingContact] = useState(false)
 
   const [form, setForm] = useState({
     contactId: "",
@@ -34,7 +44,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
     if (open) {
       fetch("/api/contacts").then(r => r.json()).then(setContacts)
       fetch("/api/services").then(r => r.json()).then(setServices)
-      fetch("/api/professional").then(r => r.json()).then(setProfessional)
+      fetch("/api/professionals").then(r => r.json()).then(setProfessionals)
     }
   }, [open])
 
@@ -47,6 +57,12 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (form.price !== "" && Number(form.price) < 0) {
+      alert("El costo del servicio no puede ser menor a 0.")
+      return
+    }
+
     setLoading(true)
 
     const res = await fetch("/api/appointments", {
@@ -62,9 +78,45 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
       onCreated()
       onClose()
       setForm({ contactId: "", serviceId: "", professionalId: "", startsAt: "", notes: "", price: "" })
+      setNewContactName("")
+      setNewContactPhone("")
+      setShowNewContact(false)
     }
 
     setLoading(false)
+  }
+
+  async function handleQuickCreateContact() {
+    if (newContactName.trim() === "") {
+      alert("El nombre del cliente es obligatorio")
+      return
+    }
+
+    setCreatingContact(true)
+
+    const res = await fetch("/api/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newContactName,
+        phone: newContactPhone === "" ? undefined : newContactPhone,
+      }),
+    })
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null)
+      alert(payload?.error ?? "No se pudo crear el cliente")
+      setCreatingContact(false)
+      return
+    }
+
+    const createdContact = await res.json()
+    setContacts(prev => [createdContact, ...prev].sort((a, b) => a.name.localeCompare(b.name)))
+    setForm(prev => ({ ...prev, contactId: createdContact.id }))
+    setNewContactName("")
+    setNewContactPhone("")
+    setCreatingContact(false)
+    setShowNewContact(false)
   }
 
   return (
@@ -76,21 +128,77 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
             <Label>Cliente</Label>
-            <Select onValueChange={v => setForm(f => ({ ...f, contactId: v }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccioná un cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {contacts.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {showNewContact ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={newContactName}
+                    onChange={e => setNewContactName(e.target.value)}
+                    placeholder="Nombre *"
+                    className="flex-1"
+                  />
+                  <Input
+                    value={newContactPhone}
+                    onChange={e => setNewContactPhone(e.target.value)}
+                    placeholder="Teléfono"
+                    className="flex-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleQuickCreateContact}
+                    disabled={creatingContact}
+                  >
+                    {creatingContact ? "Guardando..." : "Guardar cliente"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setShowNewContact(false); setNewContactName(""); setNewContactPhone("") }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Select value={form.contactId} onValueChange={v => setForm(f => ({ ...f, contactId: v }))}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Seleccioná un cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contacts.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowNewContact(true)}
+                >
+                  + Cliente
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>Servicio</Label>
-            <Select onValueChange={v => setForm(f => ({ ...f, serviceId: v }))}>
+            <Select
+              value={form.serviceId}
+              onValueChange={v => {
+                const service = services.find(s => s.id === v)
+                setForm(f => ({
+                  ...f,
+                  serviceId: v,
+                  price: service?.price != null ? String(service.price) : f.price,
+                }))
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccioná un servicio" />
               </SelectTrigger>
@@ -106,6 +214,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
             <Label>Costo</Label>
             <Input
               type="number"
+              step="0.01"
               value={form.price}
               onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
               placeholder="Costo del servicio"
@@ -114,12 +223,12 @@ export function NewAppointmentModal({ open, onClose, onCreated, selectedDate }: 
 
           <div className="space-y-2">
             <Label>Profesional</Label>
-            <Select onValueChange={v => setForm(f => ({ ...f, professionalId: v }))}>
+            <Select value={form.professionalId} onValueChange={v => setForm(f => ({ ...f, professionalId: v }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccioná un recurso" />
               </SelectTrigger>
               <SelectContent>
-                {professional.map(r => (
+                {professionals.map(r => (
                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                 ))}
               </SelectContent>

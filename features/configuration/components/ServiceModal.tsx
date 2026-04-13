@@ -46,6 +46,12 @@ export function ServiceModal({ open, onClose, onSaved, service }: ServiceModalPr
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    if (form.price !== "" && Number(form.price) < 0) {
+      alert("El costo no puede ser menor a 0")
+      return
+    }
+
     setLoading(true)
 
     const body = {
@@ -102,6 +108,7 @@ export function ServiceModal({ open, onClose, onSaved, service }: ServiceModalPr
             <Label>Precio</Label>
             <Input
               type="number"
+              min="0"
               value={form.price}
               onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
               placeholder="Opcional"

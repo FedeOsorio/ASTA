@@ -57,6 +57,9 @@ export async function POST(req: Request) {
   const start = new Date(startsAt)
   const end = new Date(start.getTime() + service.durationMinutes * 60000)
   const parsedPrice = Number(price)
+  if (Number.isFinite(parsedPrice) && parsedPrice < 0) {
+    return NextResponse.json({ error: "El costo no puede ser menor a 0" }, { status: 400 })
+  }
   const appointmentPrice = Number.isFinite(parsedPrice) ? parsedPrice : service.price
 
   const appointmentData = {
@@ -69,6 +72,7 @@ export async function POST(req: Request) {
     startsAt: start,
     endsAt: end,
     notes,
+    additionalNotes: [],
     status: "Confirmado",
   }
 

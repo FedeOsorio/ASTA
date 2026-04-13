@@ -26,6 +26,10 @@ export async function POST(req: Request) {
 
   const { name, durationMinutes, price, color } = await req.json()
 
+  if (price !== null && price !== undefined && Number(price) < 0) {
+    return NextResponse.json({ error: "El costo no puede ser menor a 0" }, { status: 400 })
+  }
+
   const service = await prisma.service.create({
     data: {
       orgId: session.user.orgId,
