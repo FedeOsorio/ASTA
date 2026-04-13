@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     patient: normalizedPatient || null,
     notes,
     additionalNotes: [],
-    status: "Confirmado",
+    status: "Nuevo",
   }
 
   const appointment = await prisma.appointment.create({

@@ -2,12 +2,14 @@ import { getAppointmentsByOrg } from "@/features/appointments/repositories/appoi
 
 export async function getAppointmentsForCalendar(orgId: string) {
   const appointments = await getAppointmentsByOrg(orgId)
+  type AppointmentRow = (typeof appointments)[number]
   const now = Date.now()
   
-  const events = appointments.map((apt) => {
+  const events = appointments.map((apt: AppointmentRow) => {
     const normalizedStatus = String(apt.status).toLowerCase().trim()
     const isCancelled = normalizedStatus === "cancelled" || normalizedStatus === "cancelado"
     const isCompleted = normalizedStatus === "realizado"
+    const isNew = normalizedStatus === "nuevo" || normalizedStatus === "new"
     const startMs = new Date(apt.startsAt).getTime()
     const endMs = new Date(apt.endsAt).getTime()
     const isInProgress = !isCancelled && !isCompleted && now >= startMs && now < endMs
@@ -18,9 +20,12 @@ export async function getAppointmentsForCalendar(orgId: string) {
         ? "Realizado"
         : isInProgress
           ? "En curso"
-          : "Confirmado"
+          : isNew
+            ? "Nuevo"
+            : "Confirmado"
 
     const statusColors: Record<string, { bg: string; border: string; text?: string }> = {
+      Nuevo: { bg: "#ede9fe", border: "#7c3aed", text: "#4c1d95" },
       Confirmado: { bg: "#dbeafe", border: "#2563eb", text: "#1e3a8a" },
       "En curso": { bg: "#fef3c7", border: "#d97706", text: "#92400e" },
       Realizado: { bg: "#dcfce7", border: "#16a34a", text: "#14532d" },

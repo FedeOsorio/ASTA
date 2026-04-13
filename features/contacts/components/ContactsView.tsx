@@ -27,6 +27,7 @@ export function ContactsView() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Contact | null>(null)
   const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [form, setForm] = useState({
     name: "",
@@ -93,6 +94,24 @@ export function ContactsView() {
     setEditing(null)
   }
 
+  async function deleteContact(contact: Contact) {
+    const confirmed = window.confirm(`¿Querés eliminar el contacto ${contact.name}?`)
+    if (!confirmed) return
+
+    setDeletingId(contact.id)
+    const res = await fetch(`/api/contacts/${contact.id}`, { method: "DELETE" })
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null)
+      alert(payload?.error ?? "No se pudo eliminar el contacto")
+      setDeletingId(null)
+      return
+    }
+
+    setContacts((prev) => prev.filter((c) => c.id !== contact.id))
+    setDeletingId(null)
+  }
+
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-100">
@@ -123,9 +142,19 @@ export function ContactsView() {
                 <TableCell>{contact.email || "-"}</TableCell>
                 <TableCell>{contact.address || "-"}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => openEdit(contact)}>
-                    Editar
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEdit(contact)}>
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteContact(contact)}
+                      disabled={deletingId === contact.id}
+                    >
+                      {deletingId === contact.id ? "Eliminando..." : "Eliminar"}
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

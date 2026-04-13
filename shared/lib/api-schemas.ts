@@ -19,11 +19,17 @@ const startsAtSchema = z.string({ message: "La fecha y hora es obligatoria" }).m
 })
 
 const timeSchema = z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "Formato de hora inválido. Use HH:mm")
+const phoneSchema = z.string().trim().min(1, "El teléfono es obligatorio").refine((value) => {
+  const digits = value.replace(/\D/g, "")
+  return digits.length >= 6
+}, {
+  message: "El teléfono debe contener al menos 6 dígitos",
+})
 
 export const createContactSchema = z.object({
   name: z.string().trim().min(1, "El nombre es obligatorio"),
   document: optionalTrimmedString,
-  phone: z.string().trim().min(1, "El teléfono es obligatorio"),
+  phone: phoneSchema,
   email: optionalTrimmedString,
   address: optionalTrimmedString,
   notes: optionalTrimmedString,
@@ -82,7 +88,7 @@ export const updateAppointmentSchema = z.object({
   startsAt: startsAtSchema.optional(),
   patient: optionalTrimmedString.optional(),
   notes: optionalTrimmedString.optional(),
-  status: z.enum(["Cancelado", "Confirmado", "Realizado", "cancelado", "cancelled", "confirmado", "realizado"]).optional(),
+  status: z.enum(["Nuevo", "Cancelado", "Confirmado", "Realizado", "new", "nuevo", "cancelado", "cancelled", "confirmado", "realizado"]).optional(),
   price: nonNegativePrice.optional(),
   additionalNote: z.string().trim().min(1, "Escribí una nota adicional para guardar.").optional(),
 }).refine((value) => Object.keys(value).length > 0, {

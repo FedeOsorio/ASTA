@@ -220,6 +220,46 @@ export function useAppointments() {
     setToast({ message: "Turno marcado como realizado.", type: "success" })
   }
 
+  async function handleConfirmAppointment() {
+    if (!selectedAppointment) return false
+
+    setIsSaving(true)
+
+    const res = await fetch(`/api/appointments/${selectedAppointment.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "Confirmado" }),
+    })
+
+    setIsSaving(false)
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        setToast({ message: "Sesión vencida. Cerrar sesión y volver a ingresar.", type: "error" })
+      } else {
+        setToast({ message: "No se pudo confirmar el turno.", type: "error" })
+      }
+      return false
+    }
+
+    const updatedAppointment = await res.json()
+    setSelectedAppointment((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        extendedProps: {
+          ...prev.extendedProps,
+          status: updatedAppointment.status ?? "Confirmado",
+          visualStatus: "Confirmado",
+        },
+      }
+    })
+
+    await fetchEvents({ silent: true })
+    setToast({ message: "Turno confirmado.", type: "success" })
+    return true
+  }
+
   function cancelEditing() {
     setIsEditing(false)
     setIsAddingNotesOnly(false)
@@ -275,6 +315,7 @@ export function useAppointments() {
     handleSaveChanges,
     handleCancelAppointment,
     handleCompleteAppointment,
+    handleConfirmAppointment,
     cancelEditing,
     startEditing,
   }

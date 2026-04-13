@@ -138,7 +138,7 @@ export function AppointmentsView({ orgId, industry }: AppointmentsViewProps) {
 
       {appointments.loading || whLoading ? (
         <div className="flex items-center justify-center flex-1">
-          <p className="text-sm text-gray-400">Cargando turnWos...</p>
+          <p className="text-sm text-gray-400">Cargando turnos...</p>
         </div>
       ) : (
         <FullCalendar
@@ -251,11 +251,12 @@ export function AppointmentsView({ orgId, industry }: AppointmentsViewProps) {
         onCompleteAppointment={() =>
           appointments.handleCompleteAppointment(() => modals.setDetailsOpen(false))
         }
-        onSendConfirmation={() => {
+        onSendConfirmation={async () => {
           if (!appointments.selectedAppointment) return
           const url = buildAppointmentWhatsappUrl(appointments.selectedAppointment, "confirmation")
           if (url) {
             window.open(url, "_blank")
+            await appointments.handleConfirmAppointment()
           } else {
             appointments.setToast({
               message: "Este turno no tiene teléfono registrado.",

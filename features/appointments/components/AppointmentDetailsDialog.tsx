@@ -94,6 +94,7 @@ export function AppointmentDetailsDialog({
   const normalizedStatus = rawStatus.trim().toLowerCase()
   const isCanceled = normalizedStatus === "cancelado" || normalizedStatus === "cancelled"
   const isCompleted = normalizedStatus === "realizado"
+  const isNew = normalizedStatus === "nuevo" || normalizedStatus === "new"
   const startsAt = selectedAppointment.start ? new Date(selectedAppointment.start) : null
   const endsAt = selectedAppointment.end ? new Date(selectedAppointment.end) : null
   const isInProgress =
@@ -110,7 +111,9 @@ export function AppointmentDetailsDialog({
       ? "Cancelado"
       : isInProgress
         ? "En curso"
-        : "Confirmado"
+        : isNew
+          ? "Nuevo"
+          : "Confirmado"
 
   const additionalNotes = Array.isArray(selectedAppointment.extendedProps.additionalNotes)
     ? selectedAppointment.extendedProps.additionalNotes
@@ -325,9 +328,11 @@ export function AppointmentDetailsDialog({
                   </>
                 ) : (
                   <>
-                    <Button size="sm" variant="outline" onClick={onSendConfirmation}>
-                      Enviar confirmación
-                    </Button>
+                    {isNew && (
+                      <Button size="sm" variant="outline" onClick={onSendConfirmation}>
+                        Enviar confirmación
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={onSendReminder}>
                       Enviar recordatorio
                     </Button>

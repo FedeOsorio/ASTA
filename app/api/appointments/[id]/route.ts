@@ -23,6 +23,7 @@ function normalizeStatus(status: unknown) {
   if (normalized === "cancelled" || normalized === "cancelado") return "Cancelado"
   if (normalized === "realizado") return "Realizado"
   if (normalized === "confirmado") return "Confirmado"
+  if (normalized === "nuevo" || normalized === "new") return "Nuevo"
 
   return status
 }
