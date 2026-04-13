@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "studio": "dotenv -e .env -- prisma studio",
     "migrate": "dotenv -e .env -- prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
     "seed": "dotenv -e .env -- tsx prisma/seed.ts"
   },
   "dependencies": {
