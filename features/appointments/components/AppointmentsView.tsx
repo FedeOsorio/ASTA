@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useAppointments } from "../hooks/useAppointments"
 import { useAppointmentModals } from "../hooks/useAppointmentModals"
 import { useWorkingHours } from "../hooks/useWorkingHours"
+import { buildAppointmentWhatsappUrl } from "@/shared/lib/whatsapp"
 
 interface AppointmentsViewProps {
   orgId: string
@@ -114,13 +115,12 @@ export function AppointmentsView({ orgId, industry }: AppointmentsViewProps) {
         }
       `}</style>
       {appointments.toast && (
-        <div className={`fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border px-4 py-3 text-sm shadow-lg ${
-          appointments.toast.type === "error" 
+        <div className={`fixed bottom-4 right-4 z-[9999] max-w-sm rounded-md border px-4 py-3 text-sm shadow-lg ${appointments.toast.type === "error"
             ? "border-red-300 bg-red-50 text-red-900"
             : appointments.toast.type === "success"
-            ? "border-amber-300 bg-amber-50 text-amber-900"
-            : "border-blue-300 bg-blue-50 text-blue-900"
-        }`}>
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : "border-blue-300 bg-blue-50 text-blue-900"
+          }`}>
           {appointments.toast.message}
         </div>
       )}
@@ -251,12 +251,30 @@ export function AppointmentsView({ orgId, industry }: AppointmentsViewProps) {
         onCompleteAppointment={() =>
           appointments.handleCompleteAppointment(() => modals.setDetailsOpen(false))
         }
-        onSendConfirmation={() =>
-          appointments.setToast({ message: "Próximamente: confirmación de turno por WhatsApp.", type: "info" })
-        }
-        onSendReminder={() =>
-          appointments.setToast({ message: "Próximamente: envío de recordatorios por WhatsApp.", type: "info" })
-        }
+        onSendConfirmation={() => {
+          if (!appointments.selectedAppointment) return
+          const url = buildAppointmentWhatsappUrl(appointments.selectedAppointment, "confirmation")
+          if (url) {
+            window.open(url, "_blank")
+          } else {
+            appointments.setToast({
+              message: "Este turno no tiene teléfono registrado.",
+              type: "error",
+            })
+          }
+        }}
+        onSendReminder={() => {
+          if (!appointments.selectedAppointment) return
+          const url = buildAppointmentWhatsappUrl(appointments.selectedAppointment, "reminder")
+          if (url) {
+            window.open(url, "_blank")
+          } else {
+            appointments.setToast({
+              message: "Este turno no tiene teléfono registrado.",
+              type: "error",
+            })
+          }
+        }}
       />
     </div>
   )
