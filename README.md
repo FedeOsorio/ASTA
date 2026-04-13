@@ -2,11 +2,11 @@
 
 Agenda de Servicios y Tareas Administrativas.
 
-ASTA es una plataforma de gestion para organizaciones que necesitan ordenar su operacion diaria, reducir tareas manuales y ofrecer una mejor experiencia de atencion.
+ASTA es una plataforma de gestion para negocios y profesionales que necesitan ordenar su operacion diaria, reducir tareas manuales y ofrecer una mejor experiencia de atencion.
 
 ## Propuesta de valor
 
-ASTA centraliza en un solo lugar la agenda, los contactos, los servicios y la gestion de turnos de una organizacion para transformar un proceso caotico en una operacion predecible y escalable.
+ASTA centraliza en un solo lugar la agenda, los contactos, los servicios y la gestion de turnos para transformar un proceso caotico en una operacion predecible, medible y escalable.
 
 ## El problema que resuelve
 
@@ -24,10 +24,8 @@ Con ASTA, la organizacion opera con una agenda visual clara y flujos estandariza
 - Organizar turnos por dia, semana y mes.
 - Crear, editar, cancelar y reprogramar en segundos.
 - Administrar contactos, servicios y profesionales desde un mismo panel.
-- Configurar el horario laboral de la organizacion (inicio, fin y espaciado de turnos).
+- Configurar horarios de trabajo segun la realidad de cada negocio.
 - Mantener control de sesion y seguridad operativa.
-
-El nucleo del producto es la organizacion como unidad de gestion.
 
 ## Beneficios de negocio
 
@@ -53,12 +51,6 @@ Ideal para organizaciones de servicios que trabajan por turnos, por ejemplo:
 - Estructura preparada para crecimiento multi-organizacion.
 - Roadmap alineado a impacto comercial (automatizacion y comunicacion).
 
-## Alcance del producto
-
-- ASTA esta enfocado en la operacion de la organizacion.
-- No incluye gestion avanzada de equipos de usuarios.
-- No incluye modulo de reportes.
-
 ## Estado del producto
 
 ASTA ya cuenta con un nucleo funcional en produccion de desarrollo:
@@ -77,8 +69,3 @@ Las proximas etapas de ASTA estan orientadas a aumentar conversion, retencion y 
 - Confirmaciones y recordatorios por WhatsApp.
 - Integracion con calendarios externos.
 - Automatizaciones administrativas.
-
-## Mensaje comercial
-
-ASTA no es solo una agenda digital.
-Es una plataforma para profesionalizar la operacion, ahorrar tiempo todos los dias y escalar un negocio de servicios con orden.
