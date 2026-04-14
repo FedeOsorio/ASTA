@@ -99,6 +99,7 @@ export function NewAppointmentModal({ open, onClose, onCreated, industry, select
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        startsAt: new Date(form.startsAt).toISOString(),
         patient: shouldAskPatient ? form.patient : undefined,
         price: form.price === "" ? undefined : Number(form.price),
       }),

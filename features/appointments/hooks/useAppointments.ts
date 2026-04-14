@@ -101,7 +101,10 @@ export function useAppointments() {
       return
     }
 
-    let payload: Record<string, unknown> = { ...editForm }
+    let payload: Record<string, unknown> = {
+      ...editForm,
+      startsAt: editForm.startsAt ? new Date(editForm.startsAt).toISOString() : editForm.startsAt,
+    }
 
     if (isAddingNotesOnly) {
       const newNote = editForm.notes.trim()
